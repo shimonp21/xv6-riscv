@@ -23,6 +23,7 @@ main(int argc, char *argv[]) {
   char* str = "Hello World xv6\n";
   write(1, str, strlen(str));
 
+  __builtin_trap();
   
   print_num_reverse(1542);
   write(1, "\n", 1);
