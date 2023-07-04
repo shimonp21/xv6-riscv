@@ -26,5 +26,7 @@ main(int argc, char *argv[]) {
   print_num_reverse(1542);
   write(1, "\n", 1);
 
-  exit(0);
+  close(1);
+
+  exit(0, "ok");
 }

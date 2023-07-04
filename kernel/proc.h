@@ -81,6 +81,8 @@ struct trapframe {
 
 enum procstate { UNUSED, USED, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 
+#define EXIT_MESSAGE_SIZE 32
+
 // Per-process state
 struct proc {
   struct spinlock lock;
@@ -90,6 +92,7 @@ struct proc {
   void *chan;                  // If non-zero, sleeping on chan
   int killed;                  // If non-zero, have been killed
   int xstate;                  // Exit status to be returned to parent's wait
+  char exit_msg[EXIT_MESSAGE_SIZE];           // Exit message.
   int pid;                     // Process ID
 
   // wait_lock must be held when using this:
