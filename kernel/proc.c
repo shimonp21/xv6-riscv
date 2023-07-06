@@ -462,6 +462,36 @@ wait(uint64 addr)
   }
 }
 
+// pick a runnable process with the lowest_accumulated_value.
+// return NULL if no runnable processes are found.
+// returns with the chosen process's lock acquired.
+struct proc* pick_process(void) {
+  struct proc* p;
+  struct proc* best_process = 0;
+  int min_accumulator;
+  uint8 found = 0;
+
+  for (p = proc; p < &proc[NPROC]; p++) {
+    acquire(&p->lock);
+    if (p->state == RUNNABLE) {
+      if (!found) {
+        found = 1;
+        min_accumulator = p->accumulator;
+        best_process = p;
+        continue; // don't release the chosen process's lock
+      } else if (p->accumulator < min_accumulator) {
+        min_accumulator = p->accumulator;
+        release(&best_process->lock);
+        best_process = p; // don't release the chosen process's lock
+        continue;
+      }
+    }
+    release(&p->lock);
+  }
+
+  return best_process;
+}
+
 // Per-CPU process scheduler.
 // Each CPU calls scheduler() after setting itself up.
 // Scheduler never returns.  It loops, doing:
@@ -480,24 +510,24 @@ scheduler(void)
     // Avoid deadlock by ensuring that devices can interrupt.
     intr_on();
 
-    for(p = proc; p < &proc[NPROC]; p++) {
-      acquire(&p->lock);
-      if(p->state == RUNNABLE) {
-        // Switch to chosen process.  It is the process's job
-        // to release its lock and then reacquire it
-        // before jumping back to us.
-        p->state = RUNNING;
-        c->proc = p;
-        swtch(&c->context, &p->context);
+    p = pick_process();
+    if (p != 0) {
+      // Switch to chosen process.  It is the process's job
+      // to release its lock and then reacquire it
+      // before jumping back to us.
+      p->state = RUNNING;
+      c->proc = p;
+      swtch(&c->context, &p->context);
 
-        // Process is done running for now.
-        // It should have changed its p->state before coming back.
-        c->proc = 0;
-      }
+      // Process is done running for now.
+      // It should have changed its p->state before coming back.
+      c->proc = 0;
       release(&p->lock);
     }
+
   }
 }
+
 
 // Switch to scheduler.  Must hold only p->lock
 // and have changed proc->state. Saves and restores
