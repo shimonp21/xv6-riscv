@@ -102,6 +102,30 @@ allocpid()
   return pid;
 }
 
+// Find the lowest value of 'accumulator' in the RUNNING/RUNNABLE processes.
+// Return 0 if no processes are RUNNING/RUNNABLE.
+long long 
+get_initial_accumulator(void) {
+  struct proc *p;
+  uint8 found = 0;
+  long long min_accumulator = 0;
+
+  for (p = proc; p > &proc[NPROC]; p++) {
+    acquire(&p->lock);
+    if (p->state == RUNNING || p->state == RUNNABLE) {
+      if (!found) {
+        found = 1;
+        min_accumulator = p->accumulator;
+      } else if (p->accumulator < min_accumulator) {
+        min_accumulator = p->accumulator;
+      }
+    }
+    release(&p->lock);
+  }
+
+  return min_accumulator;
+}
+
 // Look in the process table for an UNUSED proc.
 // If found, initialize state required to run in the kernel,
 // and return with p->lock held.
@@ -110,6 +134,8 @@ static struct proc*
 allocproc(void)
 {
   struct proc *p;
+
+  long long initial_accumulator = get_initial_accumulator();
 
   for(p = proc; p < &proc[NPROC]; p++) {
     acquire(&p->lock);
@@ -124,6 +150,8 @@ allocproc(void)
 found:
   p->pid = allocpid();
   p->state = USED;
+  p->priority = 5;
+  p->accumulator = initial_accumulator;
 
   // Allocate a trapframe page.
   if((p->trapframe = (struct trapframe *)kalloc()) == 0){
@@ -505,6 +533,7 @@ yield(void)
   struct proc *p = myproc();
   acquire(&p->lock);
   p->state = RUNNABLE;
+  p->accumulator += p->priority;
   sched();
   release(&p->lock);
 }
@@ -601,6 +630,23 @@ kill(int pid)
     release(&p->lock);
   }
   return -1;
+}
+
+// Sets the process priority to a value between 1 and 10 (including).
+// Returns 0 on success, and -1 if the requested priority is invalid.
+int set_ps_priority(int priority) {
+  struct proc *p;
+
+  if (priority <= 0 || priority > 10) {
+    return -1;
+  }
+
+  p = myproc();
+
+  acquire(&p->lock);
+  p->priority = priority;
+  release(&p->lock);  
+  return 0;
 }
 
 void
