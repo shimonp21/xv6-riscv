@@ -39,3 +39,4 @@ entry("uptime");
 entry("set_ps_priority");
 entry("get_cfs_stats");
 entry("set_cfs_priority");
+entry("set_scheduler");

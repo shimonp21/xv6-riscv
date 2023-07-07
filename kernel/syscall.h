@@ -23,3 +23,4 @@
 #define SYS_set_ps_priority 22
 #define SYS_get_cfs_stats 23
 #define SYS_set_cfs_priority 24
+#define SYS_set_scheduler 25

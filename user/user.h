@@ -26,6 +26,7 @@ int uptime(void);
 int set_ps_priority(int);
 int get_cfs_stats(struct cfs_stat*);
 int set_cfs_priority(int);
+int set_scheduler(int);
 
 // ulib.c
 int stat(const char*, struct stat*);

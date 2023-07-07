@@ -27,6 +27,12 @@ extern char trampoline[]; // trampoline.S
 // must be acquired before any p->lock.
 struct spinlock wait_lock;
 
+// 0 = default xv6.
+// 1 = accumulator.
+// 2 = cfs.
+int sched_policy;
+struct spinlock sched_policy_lock;
+
 // Allocate a page for each process's kernel stack.
 // Map it high in memory, followed by an invalid
 // guard page.
@@ -50,8 +56,11 @@ procinit(void)
 {
   struct proc *p;
   
+  sched_policy = 2;
+
   initlock(&pid_lock, "nextpid");
   initlock(&wait_lock, "wait_lock");
+  initlock(&sched_policy_lock, "sched_policy_lock");
   for(p = proc; p < &proc[NPROC]; p++) {
       initlock(&p->lock, "proc");
       p->state = UNUSED;
@@ -474,7 +483,7 @@ wait(uint64 addr)
 // pick a runnable process with the lowest_accumulated_value.
 // return NULL if no runnable processes are found.
 // returns with the chosen process's lock acquired.
-struct proc* pick_process(void) {
+struct proc* pick_process_accumulator(void) {
   struct proc* p;
   struct proc* best_process = 0;
   int min_accumulator;
@@ -499,6 +508,23 @@ struct proc* pick_process(void) {
   }
 
   return best_process;
+}
+
+// pick a runnable process.
+// return NULL if no runnable processes are found.
+// returns with the chosen process's lock acquired.
+struct proc* pick_process_xv6(void) {
+  struct proc* p;
+  
+  for (p = proc; p < &proc[NPROC]; p++) {
+    acquire(&p->lock);
+    if (p->state == RUNNABLE) {
+      return p;
+    }
+    release(&p->lock);
+  }
+
+  return 0;
 }
 
 // Must be called with p->lock acquired. 
@@ -559,13 +585,33 @@ scheduler(void)
 {
   struct proc *p;
   struct cpu *c = mycpu();
+  int policy;
   
   c->proc = 0;
   for(;;){
     // Avoid deadlock by ensuring that devices can interrupt.
     intr_on();
+    
+    acquire(&sched_policy_lock);
+    policy = sched_policy;
+    release(&sched_policy_lock);
 
-    p = pick_process_cfs();
+    switch (policy)
+    {
+    case 0:
+      p = pick_process_xv6();
+      break;
+    case 1:
+      p = pick_process_accumulator();
+      break;
+    case 2:
+      p = pick_process_cfs();
+      break;
+    default:
+      panic("unexpected policy");
+      break;
+    }
+
     if (p != 0) {
       // Switch to chosen process.  It is the process's job
       // to release its lock and then reacquire it

@@ -6,6 +6,9 @@
 #include "spinlock.h"
 #include "proc.h"
 
+extern int sched_policy;
+extern struct spinlock sched_policy_lock;
+
 uint64
 sys_exit(void)
 {
@@ -113,5 +116,21 @@ sys_set_cfs_priority(void) {
   argint(0, &priority);
   myproc()->cfs_priority = priority;
   
+  return 0;
+}
+
+uint64 
+sys_set_scheduler(void) {
+  int policy;
+
+  argint(0, &policy);
+  if (policy < 0 || policy > 2) {
+    return -1;
+  }
+
+  acquire(&sched_policy_lock);
+  sched_policy = policy;
+  release(&sched_policy_lock);
+
   return 0;
 }

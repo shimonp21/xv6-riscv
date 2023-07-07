@@ -31,6 +31,16 @@ void do_test(int id) {
 }
 
 int main(int argc, char *argv[]) {
+  int policy;
+     
+  
+  if (argc != 2) {
+    printf("usage: schedtest <policy>\n");
+    exit(1);
+  }
+
+  policy = atoi(argv[1]);
+  
   for (int i = 0; i < 3; i++) {
     int rv = fork();
 
@@ -43,7 +53,15 @@ int main(int argc, char *argv[]) {
     }
 
     // child
-    set_cfs_priority(i);
+    set_scheduler(policy);
+
+    if (policy == 2) {
+      set_cfs_priority(i);
+    } else if (policy == 1) {
+      set_ps_priority(i + 1);
+    } else {
+    }
+
     do_test(i);
     exit(0);
   }
