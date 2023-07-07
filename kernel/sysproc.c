@@ -97,3 +97,21 @@ sys_set_ps_priority(void) {
   argint(0, &n);
   return set_ps_priority(n);
 }
+
+uint64
+sys_get_cfs_stats(void) {
+  uint64 addr;
+
+  argaddr(0, &addr);
+  return get_cfs_stats(addr);
+}
+
+uint64 
+sys_set_cfs_priority(void) {
+  int priority;
+
+  argint(0, &priority);
+  myproc()->cfs_priority = priority;
+  
+  return 0;
+}

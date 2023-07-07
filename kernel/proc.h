@@ -93,7 +93,10 @@ struct proc {
   int pid;                     // Process ID
   long long accumulator;       
   int priority;
-  
+  int cfs_priority;
+  int runtime; // Process runtime (ticks)
+  int sleeptime; // Process sleep time (ticks)
+  int starttime; // Process start time (tickss from uptime)
 
   // wait_lock must be held when using this:
   struct proc *parent;         // Parent process

@@ -5,6 +5,7 @@
 #include "spinlock.h"
 #include "proc.h"
 #include "defs.h"
+#include "stat.h"
 
 struct cpu cpus[NCPU];
 
@@ -152,7 +153,15 @@ found:
   p->state = USED;
   p->priority = 5;
   p->accumulator = initial_accumulator;
+  p->runtime = 0;
+  p->sleeptime = 0;
+  p->cfs_priority = 1;
+  
+  acquire(&tickslock);
+  p->starttime = ticks;
+  release(&tickslock);
 
+  
   // Allocate a trapframe page.
   if((p->trapframe = (struct trapframe *)kalloc()) == 0){
     freeproc(p);
@@ -492,6 +501,52 @@ struct proc* pick_process(void) {
   return best_process;
 }
 
+// Must be called with p->lock acquired. 
+int cfs_score(struct proc* p, int now) {
+  int factor = 75 + (2 - p->cfs_priority) * 25;
+  if (now == p->starttime) {
+    return 0;
+  }
+  return factor * p->runtime / (now - p->starttime);  
+}
+
+// pick a runnable process with the lowest CFS score.
+// return NULL if no runnable processes are found.
+// returns with the chosen process's lock acquired.
+struct proc* pick_process_cfs(void) {
+  struct proc* p;
+  struct proc* best_process = 0;
+  int min_score;
+  uint8 found = 0;
+  int now; // time in ticks
+  int score;
+  
+  acquire(&tickslock);
+  now = ticks;
+  release(&tickslock);
+
+  for (p = proc; p < &proc[NPROC]; p++) {
+    acquire(&p->lock);
+    if (p->state == RUNNABLE) {
+      score = cfs_score(p, now);
+      if (!found) {
+        found = 1;
+        min_score = score;
+        best_process = p;
+        continue; // don't release the chosen process's lock
+      } else if (score < min_score) {
+        min_score = score;
+        release(&best_process->lock);
+        best_process = p; // don't release the chosen process's lock
+        continue;
+      }
+    }
+    release(&p->lock);
+  }
+
+  return best_process;
+}
+
 // Per-CPU process scheduler.
 // Each CPU calls scheduler() after setting itself up.
 // Scheduler never returns.  It loops, doing:
@@ -510,7 +565,7 @@ scheduler(void)
     // Avoid deadlock by ensuring that devices can interrupt.
     intr_on();
 
-    p = pick_process();
+    p = pick_process_cfs();
     if (p != 0) {
       // Switch to chosen process.  It is the process's job
       // to release its lock and then reacquire it
@@ -564,6 +619,7 @@ yield(void)
   acquire(&p->lock);
   p->state = RUNNABLE;
   p->accumulator += p->priority;
+  p->runtime += 1;
   sched();
   release(&p->lock);
 }
@@ -614,6 +670,10 @@ sleep(void *chan, struct spinlock *lk)
 
   // Tidy up.
   p->chan = 0;
+
+  if (chan == &ticks) {
+    p->sleeptime += 1;
+  }
 
   // Reacquire original lock.
   release(&p->lock);
@@ -756,4 +816,31 @@ procdump(void)
     printf("%d %s %s", p->pid, state, p->name);
     printf("\n");
   }
+}
+
+int get_cfs_stats(uint64 addr) {
+  struct cfs_stat stat;
+  struct proc* p = myproc();
+  int starttime;
+
+  acquire(&p->lock);
+  stat.runtime = p->runtime;
+  stat.sleeptime = p->sleeptime;
+  stat.cfs_priority = p->cfs_priority;
+  starttime = p->starttime;
+  release(&p->lock);
+
+  acquire(&tickslock);
+  stat.totaltime = ticks - starttime;
+  release(&tickslock);
+
+  stat.runnabletime = stat.totaltime - stat.runtime - stat.sleeptime;
+  if (stat.runnabletime < 0) { // sanity
+    stat.runnabletime = 0;
+  }
+
+  if (copyout(p->pagetable, addr, (char*)&stat, sizeof(stat)) < 0) {
+    return -1;
+  }
+  return 0;
 }

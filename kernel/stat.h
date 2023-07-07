@@ -9,3 +9,11 @@ struct stat {
   short nlink; // Number of links to file
   uint64 size; // Size of file in bytes
 };
+
+struct cfs_stat {
+  int cfs_priority;
+  int runtime;
+  int sleeptime;
+  int runnabletime;
+  int totaltime;
+};
