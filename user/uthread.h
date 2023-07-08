@@ -1,3 +1,5 @@
+#include <kernel/types.h>
+
 #define STACK_SIZE  4000
 #define MAX_UTHREADS  4
 
@@ -6,7 +8,7 @@ enum sched_priority { LOW, MEDIUM, HIGH };
 /* Possible states of a thread: */
 enum tstate { FREE, RUNNING, RUNNABLE };
 
-// Saved registers for context switches.
+
 struct context {
     uint64 ra;
     uint64 sp;
