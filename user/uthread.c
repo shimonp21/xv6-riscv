@@ -39,24 +39,44 @@ struct uthread* uthread_self() {
   return uthreads + idx;
 }
 
+int num_runnable_prio(enum sched_priority prio) {
+  int count = 0;
+  struct uthread* th;
+
+  for (th = uthreads; th < &uthreads[MAX_UTHREADS]; th++) {
+    if (th->priority == prio && th->state == RUNNABLE) {
+      count++;
+    }
+  }
+
+  return count;
+} 
+
 // Chooses the next thread to run (roundrobin).
 // If there are no runnable threads, exit.
 struct uthread* choose() {
-  static struct uthread* th = uthreads;
+  static struct uthread* th[3] = {uthreads, uthreads, uthreads};
+  enum sched_priority prio;
   struct uthread* chosen;
 
-  for (;;) {
-    if (th == &uthreads[MAX_UTHREADS]) {
-      th = uthreads;
+  for (prio = HIGH; prio >= LOW; prio--) {
+    if (num_runnable_prio(prio) == 0) {
+      continue;
     }
 
-    if (th->state == RUNNABLE) {
-       chosen = th;
-       th++;
-       return chosen;
-    }
+    for (;;) {
+      if (th[prio] == &uthreads[MAX_UTHREADS]) {
+        th[prio] = uthreads;
+      }
 
-    th++;
+      if (th[prio]->priority == prio && th[prio]->state == RUNNABLE) {
+        chosen = th[prio];
+        th[prio]++;
+        return chosen;
+      }
+
+      th[prio]++;
+    }
   }
 }
 
@@ -72,7 +92,7 @@ void uthread_yield() {
   uswtch(&this->context, &next->context);
 }
 
-int num_runnable() {
+int num_runnable_running() {
   int count = 0;
   struct uthread* th;
 
@@ -86,7 +106,7 @@ int num_runnable() {
 }
 
 void uthread_exit() {
-  if (num_runnable() == 1) { // exit if this is the last thread
+  if (num_runnable_running() == 1) { // exit if this is the last thread
     exit(0);
   }
 
@@ -112,16 +132,13 @@ int uthread_start_all() {
   return -1;
 }
 
+enum sched_priority uthread_get_priority() {
+  return uthread_self()->priority;
+}
 
-// // returns a RUNNABLE thread.
-// uthread* schedule() {
-//   uthread* next;
-
-
-// }
-
-// void uthread_yield() {
-//   uthread* th = this_uthread();
-//   th->state = RUNNABLE;
-//   uthread* next = schedule();
-// }
+enum sched_priority uthread_set_priority(enum sched_priority priority) {
+  struct uthread* self = uthread_self();
+  enum sched_priority prev = self->priority;
+  self->priority = priority;
+  return prev;
+}

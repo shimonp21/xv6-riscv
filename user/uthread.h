@@ -8,7 +8,6 @@ enum sched_priority { LOW, MEDIUM, HIGH };
 /* Possible states of a thread: */
 enum tstate { FREE, RUNNING, RUNNABLE };
 
-
 struct context {
     uint64 ra;
     uint64 sp;
