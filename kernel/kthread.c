@@ -7,6 +7,7 @@
 #include "defs.h"
 
 extern struct proc proc[NPROC];
+extern struct spinlock wait_lock;
 
 extern void forkret(void);
 
@@ -81,6 +82,7 @@ struct kthread *mykthread()
 }
 
 
+// Must be called with kt->locked acquired
 void freethread(struct kthread* kt) {
   kt->chan = 0;
   kt->killed = 0;
@@ -148,5 +150,61 @@ void kthread_exit(int status) {
 
   sched();
   panic("zombie kthread exit");
+}
 
+// kt->lock must be held
+uint8 is_used(struct kthread* kt) {
+  return kt->state != KT_UNUSED && 
+    kt->state != KT_USED;
+}
+
+int kthread_join(int ktid, uint64 out_status) {
+  struct kthread* self = mykthread();
+  struct kthread* kt;
+  struct proc* p = myproc();
+  int status;
+
+  acquire(&wait_lock);
+
+  acquire(&p->lock);
+
+  acquire(&self->lock);
+  if (self->tid == ktid) {
+    release(&self->lock);
+    release(&p->lock);
+    release(&wait_lock);
+    return -1;
+  }
+  release(&self->lock);
+
+  for (kt = p->kthread; kt < &p->kthread[NKT]; kt++) {
+    acquire(&kt->lock);
+    if (is_used(kt) && kt->tid == ktid) {
+      goto found;
+    }
+    release(&kt->lock);
+  }
+
+  release(&p->lock);
+  release(&wait_lock);
+  return -1; // given ktid was not found
+  
+  found:
+  if (kt->state != KT_ZOMBIE) {
+    release(&kt->lock);
+    release(&p->lock);
+    sleep(kt, &wait_lock); // sleep until the thread exits.
+    acquire(&p->lock);
+    acquire(&kt->lock);
+  }
+
+  status = kt->xstate;
+  freethread(kt);
+
+  if (out_status != 0 && 
+    copy_out(p->pagetable, out_status) < 0)
+
+  release(&p->lock);
+  releaes(&wait_lock);
+  return 0;
 }

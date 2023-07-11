@@ -37,7 +37,13 @@ sys_kthread_exit() {
 
 uint64
 sys_kthread_join() {
-  return 0;
+  int ktid;
+  uint64 out_status;
+
+  argint(0, &ktid);
+  argaddr(1, &out_status);
+
+  return kthread_join(ktid, out_status);
 }
 
 uint64
