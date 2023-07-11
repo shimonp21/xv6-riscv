@@ -386,8 +386,12 @@ exit(int status)
 
   for (kt = p->kthread; kt < &p->kthread[NKT]; kt++) {
     acquire(&kt->lock);
-    kt->xstate = status;
-    kt->state = KT_ZOMBIE;
+
+    if (kt->state == KT_RUNNING || kt->state == KT_RUNNABLE || kt->state == KT_SLEEPING) {
+      kt->xstate = status;
+      kt->state = KT_ZOMBIE;
+    }
+
     release(&kt->lock);
   }
 

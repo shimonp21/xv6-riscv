@@ -9,6 +9,10 @@ struct sleeplock;
 struct stat;
 struct superblock;
 
+// kthread.c
+int kthread_create(uint64, uint64, uint32);
+int kthread_exit(int);
+
 // bio.c
 void            binit(void);
 struct buf*     bread(uint, uint);

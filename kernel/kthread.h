@@ -100,3 +100,4 @@ struct kthread
 struct kthread* allocthread(struct proc* p);
 struct kthread *mykthread();
 void freethread(struct kthread* kt);
+

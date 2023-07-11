@@ -40,6 +40,7 @@ int alloctid(struct proc* p) {
 }
 
 // p->lock must be held.
+// returns with the thread lock held.
 struct kthread* allocthread(struct proc* p) {
   int i;
   struct kthread* th;
@@ -87,4 +88,33 @@ void freethread(struct kthread* kt) {
   kt->tid = 0;
   kt->trapframe = 0;
   kt->state = KT_UNUSED;
+}
+
+int kthread_create(uint64 func, uint64 stack, uint32 stack_size) {
+  struct kthread* kt;
+  struct proc* p = myproc();
+  int ktid;
+
+  acquire(&p->lock);
+  kt = allocthread(p);
+  if (kt == 0) {
+    release(&p->lock);
+    return -1;
+  }
+
+  kt->trapframe->epc = func;
+  kt->trapframe->sp = stack + stack_size;
+
+  ktid = kt->tid;
+
+  kt->state = KT_RUNNABLE;
+
+  release(&kt->lock);
+  release(&p->lock);
+
+  return ktid;
+}
+
+void kthread_exit(int status) {
+  
 }
