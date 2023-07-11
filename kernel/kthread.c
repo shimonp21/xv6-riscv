@@ -72,7 +72,11 @@ struct kthread* allocthread(struct proc* p) {
 
 struct kthread *mykthread()
 {
-  return &myproc()->kthread[0];
+  push_off();
+  struct cpu* c = mycpu();
+  struct kthread* kt = c->kt;
+  pop_off();
+  return kt;
 }
 
 

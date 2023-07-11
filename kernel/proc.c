@@ -461,6 +461,7 @@ scheduler(void)
   struct kthread* kt;
   
   c->proc = 0;
+  c->kt = 0;
   for(;;){
     // Avoid deadlock by ensuring that devices can interrupt.
     intr_on();
@@ -473,8 +474,10 @@ scheduler(void)
         if (kt->state == KT_RUNNABLE) {
           kt->state = KT_RUNNING;
           c->proc = p;
+          c->kt = kt;
           swtch(&c->context, &kt->context);
           c->proc = 0;
+          c->kt = 0;
         }
         release(&kt->lock);
       }
