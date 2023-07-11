@@ -30,5 +30,17 @@ sys_kthread_exit() {
 
   argint(0, &status);
 
-  return kthread_exit(status);
+  kthread_exit(status);
+
+  return -1;
+}
+
+uint64
+sys_kthread_join() {
+  return 0;
+}
+
+uint64
+sys_kthread_kill() {
+  return 0;
 }

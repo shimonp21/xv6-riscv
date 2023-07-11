@@ -387,7 +387,7 @@ exit(int status)
   for (kt = p->kthread; kt < &p->kthread[NKT]; kt++) {
     acquire(&kt->lock);
 
-    if (kt->state == KT_RUNNING || kt->state == KT_RUNNABLE || kt->state == KT_SLEEPING) {
+    if (kt->state == KT_RUNNING || kt->state == KT_RUNNABLE || kt->state == KT_SLEEPING || kt->state == KT_ZOMBIE) {
       kt->xstate = status;
       kt->state = KT_ZOMBIE;
     }

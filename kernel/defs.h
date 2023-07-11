@@ -11,7 +11,9 @@ struct superblock;
 
 // kthread.c
 int kthread_create(uint64, uint64, uint32);
-int kthread_exit(int);
+void kthread_exit(int);
+int kthread_join(int, int*);
+int kthread_kill(int ktid);
 
 // bio.c
 void            binit(void);

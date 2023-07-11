@@ -115,6 +115,38 @@ int kthread_create(uint64 func, uint64 stack, uint32 stack_size) {
   return ktid;
 }
 
+// p->lock must be held
+int num_running_runnable_sleeping(struct proc* p) {
+  struct kthread* kt;
+  int n = 0;
+
+  for (kt = p->kthread; kt < &p->kthread[NKT]; kt++) {
+    acquire(&kt->lock);
+    if (kt->state == KT_RUNNING || kt->state == KT_SLEEPING || 
+      kt->state == KT_RUNNABLE) {
+      n++;
+    }
+    release(&kt->lock);
+  }
+
+  return  n;
+}
+
 void kthread_exit(int status) {
-  
+  struct kthread* kt = mykthread();
+  struct proc* p = myproc();
+
+  acquire(&p->lock);
+  if (num_running_runnable_sleeping(p) == 1) {
+    release(&p->lock);
+    exit(status);
+  }
+
+  acquire(&kt->lock);
+  kt->state = KT_ZOMBIE;
+  kt->xstate = status;
+
+  sched();
+  panic("zombie kthread exit");
+
 }

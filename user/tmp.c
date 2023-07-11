@@ -3,9 +3,10 @@
 #include "user/user.h"
 
 void* func() {
-  printf("kt!\n");
-  sleep(100000);
-  exit(0);
+  printf("kt1!\n");
+  sleep(10);
+  printf("kt2\n");
+  kthread_exit(0);
 }
 
 int
@@ -13,8 +14,6 @@ main(int argc, char *argv[])
 {
   int tid;
   void* stack;
-  
-  printf("%d\n", kthread_id());
 
   stack = malloc(4000);
   if (stack == 0) {
@@ -28,6 +27,7 @@ main(int argc, char *argv[])
     exit(1);
   }
 
-  sleep(100000);
-  exit(0);
+  sleep(30);
+  printf("m!\n");
+  kthread_exit(0);
 }
