@@ -15,6 +15,7 @@ int
 main(void)
 {
   int pid, wpid;
+  int fd;
 
   if(open("console", O_RDWR) < 0){
     mknod("console", CONSOLE, 0);
@@ -22,6 +23,13 @@ main(void)
   }
   dup(0);  // stdout
   dup(0);  // stderr
+
+  fd = open("random", O_RDWR);
+  if (fd < 0) { // create the device inode
+    mknod("random", DEVRANDOM, 0);
+  } else { // already exists.
+    close(fd);
+  }
 
   for(;;){
     printf("init: starting sh\n");
