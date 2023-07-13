@@ -180,3 +180,40 @@ filewrite(struct file *f, uint64 addr, int n)
   return ret;
 }
 
+#define SEEK_SET 0
+#define SEEK_CUR 1
+
+int fileseek(struct file* f, int off, int whence) {
+  int offset = 0;
+  int size;
+
+  if (whence != SEEK_SET && whence != SEEK_CUR) {
+    return -1;
+  }
+
+  if (f->type != FD_INODE) {
+    return -1; // only regular files are seekable
+  }
+
+  if (whence == SEEK_SET) {
+    offset = off;
+  } else if (whence == SEEK_CUR) {
+    offset = f->off + off;
+  }
+
+  if (offset < 0) {
+    offset = 0;
+  }
+
+  ilock(f->ip);
+  size = f->ip->size;
+  iunlock(f->ip);
+
+  if (offset > size) {
+    offset = size;
+  }
+
+  f->off = offset;
+
+  return 0;
+}
