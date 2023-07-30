@@ -6,7 +6,7 @@ void* func() {
   printf("kt1!\n");
   sleep(10);
   printf("kt2\n");
-  kthread_exit(0);
+  kthread_exit(17);
 }
 
 int
@@ -14,6 +14,8 @@ main(int argc, char *argv[])
 {
   int tid;
   void* stack;
+  int exit_status;
+  int rv;
 
   stack = malloc(4000);
   if (stack == 0) {
@@ -27,7 +29,12 @@ main(int argc, char *argv[])
     exit(1);
   }
 
-  sleep(30);
-  printf("m!\n");
+  rv = kthread_join(tid, &exit_status);
+  if (rv == -1) {
+    printf("kthread join failed\n");
+    exit(1);
+  }
+
+  printf("kthread exited with status %d!\n", exit_status);
   kthread_exit(0);
 }

@@ -138,9 +138,13 @@ void kthread_exit(int status) {
   struct kthread* kt = mykthread();
   struct proc* p = myproc();
 
+  acquire(&wait_lock);
+  
+  wakeup(kt);
   acquire(&p->lock);
   if (num_running_runnable_sleeping(p) == 1) {
     release(&p->lock);
+    release(&wait_lock);
     exit(status);
   }
 
@@ -148,6 +152,7 @@ void kthread_exit(int status) {
   kt->state = KT_ZOMBIE;
   kt->xstate = status;
 
+  release(&wait_lock);
   sched();
   panic("zombie kthread exit");
 }
@@ -201,10 +206,13 @@ int kthread_join(int ktid, uint64 out_status) {
   status = kt->xstate;
   freethread(kt);
 
-  if (out_status != 0 && 
-    copy_out(p->pagetable, out_status) < 0)
+  if (out_status != 0 &&
+    copyout(p->pagetable, out_status, (char*)&status, sizeof(status)) < 0) {
+    return -1;
+  }
 
+  release(&kt->lock);
   release(&p->lock);
-  releaes(&wait_lock);
+  release(&wait_lock);
   return 0;
 }
