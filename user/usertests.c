@@ -785,6 +785,48 @@ pipe1(char *s)
   }
 }
 
+#define MAX_STACK_SIZE 4000
+
+void kthread_start_func(void){
+  for(int i=0; i<10; i++){
+    sleep(10); // simulate work
+  }
+  kthread_exit(0);
+  printf("kthread_exit failed\n");
+  exit(1);
+}
+
+void klttest()
+{
+  uint64 stack_a = (uint64)malloc(MAX_STACK_SIZE);
+  uint64 stack_b = (uint64)malloc(MAX_STACK_SIZE);
+
+  int kt_a = kthread_create((void *(*)())kthread_start_func, (void*)stack_a, MAX_STACK_SIZE);
+  if(kt_a <= 0){
+    printf("kthread_create failed\n");
+    exit(1);
+  }
+  int kt_b = kthread_create((void *(*)())kthread_start_func, (void*)stack_b, MAX_STACK_SIZE);
+  if(kt_a <= 0){
+    printf("kthread_create failed\n");
+    exit(1);
+  }
+
+  int joined = kthread_join(kt_a, 0);
+  if(joined != 0){
+    printf("kthread_join failed\n");
+    exit(1);
+  }
+
+  joined = kthread_join(kt_b, 0);
+  if(joined != 0){
+    printf("kthread_join failed\n");
+    exit(1);
+  }
+
+  free((void *)stack_a);
+  free((void *)stack_b);
+}
 
 // test if child is killed (status = -1)
 void
@@ -803,7 +845,7 @@ killstatus(char *s)
         getpid();
       }
       exit(0);
-    }
+    } 
     sleep(1);
     kill(pid1);
     wait(&xst);
@@ -2635,6 +2677,7 @@ struct test {
   {sbrklast, "sbrklast"},
   {sbrk8000, "sbrk8000"},
   {badarg, "badarg" },
+  {klttest, "klttest"},
 
   { 0, 0},
 };
