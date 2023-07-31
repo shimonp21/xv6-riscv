@@ -31,6 +31,7 @@ exec(char *path, char **argv)
   pagetable_t pagetable = 0, oldpagetable;
   struct proc *p = myproc();
   struct kthread *kt = mykthread();
+  struct kthread* otherkt;
 
   begin_op();
 
@@ -110,6 +111,21 @@ exec(char *path, char **argv)
     goto bad;
   if(copyout(pagetable, sp, (char *)ustack, (argc+1)*sizeof(uint64)) < 0)
     goto bad;
+
+  acquire(&p->lock);
+  for (otherkt = p->kthread; otherkt < &p->kthread[NKT]; otherkt++) {
+    if (otherkt == kt) {
+      continue;
+    }
+    acquire(&otherkt->lock);
+
+    if (otherkt->state == KT_RUNNING || otherkt->state == KT_RUNNABLE || otherkt->state == KT_SLEEPING || otherkt->state == KT_ZOMBIE) {
+      otherkt->state = KT_ZOMBIE;
+    }
+
+    release(&otherkt->lock);
+  }
+  release(&p->lock);
 
   // arguments to user main(argc, argv)
   // argc is returned via the system call return

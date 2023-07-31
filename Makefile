@@ -134,7 +134,9 @@ UPROGS=\
 	$U/_grind\
 	$U/_wc\
 	$U/_zombie\
-	$U/_tmp
+	$U/_tmp\
+	$U/_exectest\
+	$U/_sleeper
 
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)
