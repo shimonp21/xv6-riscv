@@ -136,7 +136,8 @@ UPROGS=\
 	$U/_zombie\
 	$U/_tmp\
 	$U/_exectest\
-	$U/_sleeper
+	$U/_sleeper\
+	$U/_ktkilltest
 
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)

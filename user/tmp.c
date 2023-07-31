@@ -3,6 +3,7 @@
 #include "user/user.h"
 
 void* func() {
+  printf("[func] kthread_id=%d\n", kthread_id());
   printf("kt1!\n");
   sleep(10);
   printf("kt2\n");
@@ -16,6 +17,8 @@ main(int argc, char *argv[])
   void* stack;
   int exit_status;
   int rv;
+
+  printf("[main] kthread_id=%d\n", kthread_id());
 
   stack = malloc(4000);
   if (stack == 0) {

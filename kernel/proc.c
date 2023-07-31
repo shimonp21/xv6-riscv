@@ -445,7 +445,7 @@ wait(uint64 addr)
     }
 
     // No point waiting if we don't have any children.
-    if(!havekids || killed(p)){
+    if(!havekids || killed(p) || kt_killed(p, mykthread())){
       release(&wait_lock);
       return -1;
     }

@@ -116,6 +116,7 @@ void            procdump(void);
 // kthread.c
 void                kthreadinit(struct proc *);
 struct kthread*     mykthread();
+int                 kt_killed(struct proc* p, struct kthread* kt);
 
 // swtch.S
 void            swtch(struct context*, struct context*);

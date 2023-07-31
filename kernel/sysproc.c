@@ -62,6 +62,10 @@ sys_sleep(void)
       release(&tickslock);
       return -1;
     }
+    if (kt_killed(myproc(), mykthread())) {
+      release(&tickslock);
+      return -1;
+    }
     sleep(&ticks, &tickslock);
   }
   release(&tickslock);

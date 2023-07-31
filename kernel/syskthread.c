@@ -48,5 +48,9 @@ sys_kthread_join() {
 
 uint64
 sys_kthread_kill() {
-  return 0;
+  int ktid;
+
+  argint(0, &ktid);
+  
+  return kthread_kill(ktid);
 }

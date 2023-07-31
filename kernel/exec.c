@@ -120,7 +120,7 @@ exec(char *path, char **argv)
     acquire(&otherkt->lock);
 
     if (otherkt->state == KT_RUNNING || otherkt->state == KT_RUNNABLE || otherkt->state == KT_SLEEPING || otherkt->state == KT_ZOMBIE) {
-      otherkt->state = KT_ZOMBIE;
+      otherkt->state = KT_UNUSED;
     }
 
     release(&otherkt->lock);

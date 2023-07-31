@@ -216,3 +216,38 @@ int kthread_join(int ktid, uint64 out_status) {
   release(&wait_lock);
   return 0;
 }
+
+int kthread_kill(int ktid) {
+  struct proc *p = myproc();
+  struct kthread* kt;
+
+  acquire(&p->lock);
+  for (kt = p->kthread; kt < &p->kthread[NKT]; kt++) {
+    acquire(&kt->lock);
+    if (is_used(kt) && kt->tid == ktid) {
+      kt->killed = 1;
+      if (kt->state == KT_SLEEPING) {
+        kt->state = KT_RUNNABLE;
+      }
+      release(&kt->lock);
+      release(&p->lock);
+      return 0;
+    }
+    release(&kt->lock);
+  }
+  release(&p->lock);
+  return -1;
+}
+
+int kt_killed(struct proc *p, struct kthread* kt) {
+  int k;
+
+  acquire(&p->lock);
+  acquire(&kt->lock);
+
+  k = kt->killed;
+
+  release(&kt->lock);
+  release(&p->lock);
+  return k;
+}
